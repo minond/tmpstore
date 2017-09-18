@@ -4,13 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"mime/multipart"
 	"net/http"
 	"os"
-	"os/exec"
+	"time"
 )
 
-var LOCAL_STORE_LOC = "./uploads/"
+const LOCAL_STORE_LOC = "./uploads/"
+const CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const NAME_LEN = 32
 
 func main() {
 	port := os.Getenv("PORT")
@@ -18,6 +21,8 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
+	rand.Seed(time.Now().UnixNano())
 
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/upload", upload)
@@ -51,13 +56,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer tmpFile.Close()
-	name, err := generateRandomName()
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
+	name := generateRandomName()
 	err = uploadLocal(name, tmpFile)
 
 	if err != nil {
@@ -83,15 +82,12 @@ func uploadLocal(name string, f multipart.File) error {
 	return nil
 }
 
-func generateRandomName() (string, error) {
-	out, err := exec.Command("uuidgen").Output()
+func generateRandomName() string {
+	buff := make([]byte, NAME_LEN)
 
-	if err != nil {
-		return "", err
+	for i := range buff {
+		buff[i] = CHARS[rand.Intn(len(CHARS))]
 	}
 
-	str := string(out[:])
-	str = str[:len(str)-5]
-
-	return str, nil
+	return string(buff)
 }
