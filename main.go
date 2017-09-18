@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"os/exec"
 )
 
 func main() {
@@ -44,7 +45,14 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	defer tmpFile.Close()
 	fmt.Fprintf(w, "%v", handler.Header)
 
-	err = uploadLocal(handler.Filename, tmpFile)
+	name, err := genName()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = uploadLocal(name, tmpFile)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -64,4 +72,17 @@ func uploadLocal(name string, f multipart.File) error {
 	io.Copy(localFile, f)
 
 	return nil
+}
+
+func genName() (string, error) {
+	out, err := exec.Command("uuidgen").Output()
+
+	if err != nil {
+		return "", err
+	}
+
+	str := string(out[:])
+	str = str[:len(str)-5]
+
+	return str, nil
 }
