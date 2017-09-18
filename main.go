@@ -10,6 +10,8 @@ import (
 	"os/exec"
 )
 
+var LOCAL_STORE_LOC = "./uploads/"
+
 func main() {
 	port := os.Getenv("PORT")
 
@@ -19,12 +21,18 @@ func main() {
 
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/upload", upload)
+	http.HandleFunc("/get/", serve)
 	http.ListenAndServe(":"+port, nil)
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "plain/text")
 	w.Write([]byte("pong"))
+}
+
+func serve(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Path[5:]
+	http.ServeFile(w, r, LOCAL_STORE_LOC+name)
 }
 
 func upload(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +51,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer tmpFile.Close()
-	name, err := genName()
+	name, err := generateRandomName()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -57,13 +65,12 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	w.Header().Set("Content-Type", "plain/text")
 	w.Write([]byte(name))
 }
 
 func uploadLocal(name string, f multipart.File) error {
-	localFile, err := os.OpenFile("./uploads/"+name, os.O_WRONLY|os.O_CREATE, 0666)
+	localFile, err := os.OpenFile(LOCAL_STORE_LOC+name, os.O_WRONLY|os.O_CREATE, 0666)
 
 	if err != nil {
 		msg := fmt.Sprintf("Could not access internal storage: %s", err)
@@ -76,7 +83,7 @@ func uploadLocal(name string, f multipart.File) error {
 	return nil
 }
 
-func genName() (string, error) {
+func generateRandomName() (string, error) {
 	out, err := exec.Command("uuidgen").Output()
 
 	if err != nil {
