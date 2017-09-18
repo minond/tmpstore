@@ -47,7 +47,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	err = uploadLocal(handler.Filename, tmpFile)
 
 	if err != nil {
-		http.Error(w, msg, http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
