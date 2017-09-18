@@ -65,8 +65,8 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "plain/text")
-	w.Write([]byte(name))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(fmt.Sprintf(`{"name":"%s"}`, name)))
 }
 
 func uploadLocal(name string, f multipart.File) error {
