@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 )
@@ -42,14 +44,24 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	defer tmpFile.Close()
 	fmt.Fprintf(w, "%v", handler.Header)
 
-	localFile, err := os.OpenFile("./uploads/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+	err = uploadLocal(handler.Filename, tmpFile)
 
 	if err != nil {
-		msg := fmt.Sprintf("Could not access internal storage: %s", err)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
+}
+
+func uploadLocal(name string, f multipart.File) error {
+	localFile, err := os.OpenFile("./uploads/"+name, os.O_WRONLY|os.O_CREATE, 0666)
+
+	if err != nil {
+		msg := fmt.Sprintf("Could not access internal storage: %s", err)
+		return errors.New(msg)
+	}
 
 	defer localFile.Close()
-	io.Copy(localFile, tmpFile)
+	io.Copy(localFile, f)
+
+	return nil
 }
