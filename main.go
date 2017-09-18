@@ -34,7 +34,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.ParseMultipartForm(32 << 20)
-	tmpFile, handler, err := r.FormFile("file")
+	tmpFile, _, err := r.FormFile("file")
 
 	if err != nil {
 		msg := fmt.Sprintf("Could not extract file from request: %s", err)
@@ -43,8 +43,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer tmpFile.Close()
-	fmt.Fprintf(w, "%v", handler.Header)
-
 	name, err := genName()
 
 	if err != nil {
@@ -58,6 +56,10 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+
+	w.Header().Set("Content-Type", "plain/text")
+	w.Write([]byte(name))
 }
 
 func uploadLocal(name string, f multipart.File) error {
