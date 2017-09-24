@@ -64,13 +64,36 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go func() {
+		timeout := 5 * time.Minute
+		fmt.Printf("Deleting %s in %s\n", name, timeout.String())
+
+		select {
+		case <-time.After(timeout):
+			fmt.Printf("Deleting %s now\n", name)
+			err := deleteLocal(name)
+
+			if err != nil {
+				fmt.Printf("Having a reaalll hard time deleting %s\n", name)
+			} else {
+				fmt.Printf("Successfully deleted %s\n", name)
+			}
+		}
+	}()
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write([]byte(fmt.Sprintf(`{"name":"%s"}`, name)))
 }
 
+func deleteLocal(name string) error {
+	path := LOCAL_STORE_LOC + name
+	return os.Remove(path)
+}
+
 func uploadLocal(name string, f multipart.File) error {
-	localFile, err := os.OpenFile(LOCAL_STORE_LOC+name, os.O_WRONLY|os.O_CREATE, 0666)
+	path := LOCAL_STORE_LOC + name
+	localFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0666)
 
 	if err != nil {
 		msg := fmt.Sprintf("Could not access internal storage: %s", err)
