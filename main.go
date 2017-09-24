@@ -58,32 +58,34 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	defer tmpFile.Close()
 	name := generateRandomName()
 	err = uploadLocal(name, tmpFile)
+	ttl := 5 * time.Minute
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	go func() {
-		timeout := 5 * time.Minute
-		fmt.Printf("Deleting %s in %s\n", name, timeout.String())
-
-		select {
-		case <-time.After(timeout):
-			fmt.Printf("Deleting %s now\n", name)
-			err := deleteLocal(name)
-
-			if err != nil {
-				fmt.Printf("Having a reaalll hard time deleting %s\n", name)
-			} else {
-				fmt.Printf("Successfully deleted %s\n", name)
-			}
-		}
-	}()
+	go delete(name, ttl, deleteLocal)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write([]byte(fmt.Sprintf(`{"name":"%s"}`, name)))
+}
+
+func delete(name string, timeout time.Duration, handler func(string) error) {
+	fmt.Printf("Deleting %s in %s\n", name, timeout.String())
+
+	select {
+	case <-time.After(timeout):
+		fmt.Printf("Deleting %s now\n", name)
+		err := handler(name)
+
+		if err != nil {
+			fmt.Printf("Having a reaalll hard time deleting %s\n", name)
+		} else {
+			fmt.Printf("Successfully deleted %s\n", name)
+		}
+	}
 }
 
 func deleteLocal(name string) error {
