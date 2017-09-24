@@ -80,6 +80,8 @@ func uploadLocal(name string, f multipart.File) error {
 	defer localFile.Close()
 	io.Copy(localFile, f)
 
+	fmt.Printf("Storing %s locally\n", name)
+
 	return nil
 }
 
